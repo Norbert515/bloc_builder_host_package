@@ -25,6 +25,12 @@ import 'package:analyzer/src/context/context_root.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'my_stuff.dart';
 import 'package:analyzer/dart/analysis/results.dart';
+import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/src/dart/element/element.dart';
+import 'package:analyzer/src/dart/ast/ast.dart';
+import 'package:analyzer/src/dart/element/handle.dart';
+import 'package:analyzer/src/dart/element/member.dart';
+import 'package:analyzer/src/dart/element/type_algebra.dart';
 
 
 
@@ -109,6 +115,7 @@ class TestAssistContributor extends Object
     implements MyAssistContributor {
 
   static AssistKind wrapInIf = AssistKind('wrapInIf', 100, "Wrap in an 'if' statement");
+  static AssistKind wrapInIf2 = AssistKind('wrapInIf2', 100, "Wrap in an 'if' statement");
 
   DartAssistRequest request;
 
@@ -126,11 +133,11 @@ class TestAssistContributor extends Object
   Future<void> computeAssists(DartAssistRequest request, AssistCollector collector) async {
     this.request = request;
     this.collector = collector;
-    await _wrapInIf();
+    await _control();
     await _wrapInWhile();
   }
 
-  Future _wrapInIf() async {
+  Future _control() async {
     ChangeBuilder builder = DartChangeBuilder(session);
     await builder.setSelection(plugin.Position(request.result.path, 0));
     await builder.addFileEdit(request.result.path, (builder) {
@@ -144,6 +151,7 @@ class TestAssistContributor extends Object
 
 
     var visitor = WrapVisitor(request.offset);
+    var blocVisitor = BlocWrapperVisitor(request.offset);
 
     /*
     if(unitResult == null) {
@@ -156,16 +164,38 @@ class TestAssistContributor extends Object
       return;
     }*/
     request.result.unit.accept(visitor);
+    request.result.unit.accept(blocVisitor);
 
-    if(visitor.it != null) {
-      var literal = visitor.it;
+    if(blocVisitor.it != null) {
+      var literal = blocVisitor.it;
+      var toWrap = request.result.content.substring(literal.offset, literal.end);
+
+
+      int offset = offsetToStartOfLine(request.result.content, literal.offset);
+
+      var space = ' ' * offset;
+
+
+
+
       var builder = DartChangeBuilder(session);
       await builder.addFileEdit(request.result.path, (builder) {
         builder.addReplacement(SourceRange(literal.offset, literal.length), (builder) {
-          builder.write(literal.value? "false": "true");
+          /*var conElement = ConstructorMember(ConstructorElementImpl("Bloc<>", -1), Substitution.fromMap({
+            TypeParameterElementImpl("builder", -1):null
+          }));*/
+          //conElement.constantInitializers = [];
+          //builder.writeReference(conElement);
+          builder.writeln("BlocBuilder<void, void>(");
+          builder.writeln("$space  builder: (context, state) {");
+          builder.write("$space    return ");
+          builder.write(toWrap);
+          builder.writeln(";");
+          builder.writeln("},");
+          builder.writeln("),");
         });
       });
-      addAssist(wrapInIf, builder);
+      collectIt(100, 'Wrap in BlocBuilder', builder.sourceChange);
     }
     /*
     channel.sendNotification(Notification("plugin.error", {
@@ -177,10 +207,55 @@ class TestAssistContributor extends Object
       --------------------------------
       """,
     }));*/
+  }
 
+  int offsetToStartOfLine(String content, int offset) {
+    int index = offset;
+    int tillBeginning = 0;
+    while(index > 0) {
+      index--;
+      tillBeginning ++;
+      if(request.result.content[index] == "\n") {
+        return tillBeginning;
+
+      }
+    }
+  }
+
+
+  void collectIt(int prio, String msg, plugin.SourceChange sourceChange) {
+    collector.addAssist(plugin.PrioritizedSourceChange(prio, plugin.SourceChange(
+        msg,
+        edits: sourceChange.edits,
+        linkedEditGroups: sourceChange.linkedEditGroups,
+        selection: sourceChange.selection,
+        id: "uhm, what id?"
+    )));
   }
 }
 
+class BlocWrapperVisitor extends RecursiveAstVisitor {
+
+  final int offset;
+
+  InstanceCreationExpression it;
+
+  BlocWrapperVisitor(this.offset);
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    var isWidget = node.staticElement.enclosingElement.allSupertypes.where((it) => it.name == 'Widget').isNotEmpty;
+
+    if(offset > node.offset && offset < node.offset + node.beginToken.length) {
+      if(isWidget) {
+        it = node;
+      }
+    }
+
+    return super.visitInstanceCreationExpression(node);
+  }
+
+}
 
 class WrapVisitor extends RecursiveAstVisitor {
 
