@@ -24,7 +24,6 @@ import 'package:analyzer/src/dart/analysis/driver.dart';
 import 'package:analyzer/src/context/context_root.dart';
 import 'package:analyzer/src/context/builder.dart';
 import 'bloc_builder.dart';
-import 'event_navigation.dart';
 import 'my_stuff.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/element/element.dart';
@@ -35,75 +34,63 @@ import 'package:analyzer/src/dart/element/member.dart';
 import 'package:analyzer/src/dart/element/type_algebra.dart';
 import 'package:analyzer/dart/element/visitor.dart';
 
-
-
-
-void main(List<String> args, SendPort sendPort) async {
-  start(args, sendPort);
-
-}
-
-void start(List<String> args, SendPort sendPort) {
-  ServerPluginStarter(MyPlugin(PhysicalResourceProvider.INSTANCE))
-      .start(sendPort);
-}
-class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyNavigationMixin, MyDartNavigationMixin{
-  MyPlugin(ResourceProvider provider) : super(provider) {
-    testAssistContributor = TestAssistContributor(channel);
-  }
+class EventNavigationContributor implements MyNavigationContributor {
 
   @override
-  List<String> get fileGlobsToAnalyze => <String>['**/*.dart'];
+  Future computeNavigation (
+      NavigationRequest request, NavigationCollector collector) async {
+    if (request is DartNavigationRequest) {
+      var visitor = EventVisitor(request.offset);
+      request.result.unit.accept(visitor);
+      String path = visitor.it.staticParameterElement.source.uri.path;
 
-  @override
-  String get name => 'Bloc plugin';
-
-  @override
-  String get version => '1.0.0';
-
-  @override
-  AnalysisDriverGeneric createAnalysisDriver(plugin.ContextRoot contextRoot) {
-    var root = ContextRoot(contextRoot.root, contextRoot.exclude,
-        pathContext: resourceProvider.pathContext)
-      ..optionsFilePath = contextRoot.optionsFile;
-    var contextBuilder = ContextBuilder(resourceProvider, sdkManager, null)
-      ..analysisDriverScheduler = analysisDriverScheduler
-      ..byteStore = byteStore
-      ..performanceLog = performanceLog
-      ..fileContentOverlay = fileContentOverlay;
-    var result = contextBuilder.buildDriver(root);
-    result.results.listen(_processResult);
-    return result;
-  }
-
-  @override
-  void contentChanged(String path) {
-    super.driverForPath(path).addFile(path);
-  }
-
-  void _processResult(ResolvedUnitResult result) {
-    /*if(result.unit != null) {
-      testAssistContributor.unitResult = result;
-      channel.sendNotification(Notification("plugin.error", {
-        'isFatal': false,
-        "message": """
-      Getting a new ResolvedUnitResult!
-      """,
-      }));
-    }*/
-  }
-
-  TestAssistContributor testAssistContributor;
-
-  @override
-  List<MyAssistContributor> getAssistContributors(String path) {
-    return [testAssistContributor];
-  }
-
-  @override
-  List<MyNavigationContributor> getNavigationContributors(String path) {
-    return <MyNavigationContributor>[EventNavigationContributor()];
+    }
   }
 }
 
+/*
+class EventVisitor extends RecursiveElementVisitor {
 
+  List<BlocAndState> names = [];
+
+  bool isBlocSubclass(ClassElement element) {
+    return element.supertype.element.name == "Bloc";
+  }
+
+
+  @override
+  void visitClassElement(ClassElement element) {
+    if(isBlocSubclass(element)) {
+      var state = element.supertype.typeArguments[1].element.name;
+      names.add(BlocAndState(element.name, state));
+    }
+
+
+
+    return super.visitClassElement(element);
+  }
+
+}*/
+
+class EventVisitor extends RecursiveAstVisitor {
+
+  final int offset;
+
+  InstanceCreationExpression it;
+
+  EventVisitor(this.offset);
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    //var isWidget = node.staticElement.enclosingElement.allSupertypes.where((it) => it.name == 'Widget').isNotEmpty;
+
+    if(offset > node.offset && offset < node.offset + node.beginToken.length) {
+      //if(isWidget) {
+        it = node;
+      //}
+      return;
+    }
+
+    return super.visitInstanceCreationExpression(node);
+  }
+}
