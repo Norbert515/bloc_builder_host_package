@@ -36,7 +36,7 @@ class TestAssistContributor extends Object
   Future<void> computeAssists(DartAssistRequest request, AssistCollector collector) async {
     this.request = request;
     this.collector = collector;
-    await _control();
+    //await _control();
     await _wrapInWhile();
   }
 
@@ -78,8 +78,8 @@ class TestAssistContributor extends Object
       int empties = numberOfUntilFirstNonEmpty(content, startOfLine + 1);
 
 
-      debug("$startOfLine");
-      debug("$empties");
+      //debug("$startOfLine");
+      //debug("$empties");
 
       var builder = DartChangeBuilder(session);
       await builder.addFileEdit(request.result.path, (builder) {
@@ -129,7 +129,7 @@ class TestAssistContributor extends Object
     var num = 0;
     while(start < content.length) {
       if(content[start].trim().isNotEmpty) {
-        debug("This was the first: ${content[start]}");
+        //debug("This was the first: ${content[start]}");
         return num;
       }
 

@@ -35,6 +35,9 @@ import 'package:analyzer/src/dart/element/member.dart';
 import 'package:analyzer/src/dart/element/type_algebra.dart';
 import 'package:analyzer/dart/element/visitor.dart';
 
+abstract class Logger {
+  void log(String msg);
+}
 
 
 
@@ -47,7 +50,7 @@ void start(List<String> args, SendPort sendPort) {
   ServerPluginStarter(MyPlugin(PhysicalResourceProvider.INSTANCE))
       .start(sendPort);
 }
-class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyNavigationMixin, MyDartNavigationMixin{
+class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyNavigationMixin, MyDartNavigationMixin implements Logger{
   MyPlugin(ResourceProvider provider) : super(provider) {
     testAssistContributor = TestAssistContributor(channel);
   }
@@ -93,6 +96,16 @@ class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyN
     }*/
   }
 
+  @override
+  void log(String msg) {
+    channel.sendNotification(Notification('plugin.error', {
+      'isFatal': false,
+      'message': msg,
+      'stackTrace': 'No Trace',
+    }));
+
+  }
+
   TestAssistContributor testAssistContributor;
 
   @override
@@ -102,7 +115,7 @@ class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyN
 
   @override
   List<MyNavigationContributor> getNavigationContributors(String path) {
-    return <MyNavigationContributor>[EventNavigationContributor()];
+    return <MyNavigationContributor>[EventNavigationContributor(this)];
   }
 }
 

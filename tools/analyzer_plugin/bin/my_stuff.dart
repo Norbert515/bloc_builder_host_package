@@ -178,7 +178,7 @@ mixin MyNavigationMixin implements ServerPlugin {
     try {
       var request = await getNavigationRequest(AnalysisGetNavigationParams(path, -1, -1));
       var generator = MyNavigationGenerator(getNavigationContributors(path));
-      var generatorResult = generator.generateNavigationNotification(request);
+      var generatorResult = await generator.generateNavigationNotification(request);
       generatorResult.sendNotifications(channel);
     } on RequestFailure {
       // If we couldn't analyze the file, then don't send a notification.
@@ -241,12 +241,12 @@ class MyNavigationGenerator {
   /// Create an 'analysis.navigation' notification for the portion of the file
   /// specified by the given [request]. If any of the contributors throws an
   /// exception, also create a non-fatal 'plugin.error' notification.
-  GeneratorResult generateNavigationNotification(NavigationRequest request) {
+  Future<GeneratorResult> generateNavigationNotification(NavigationRequest request) async {
     var notifications = <Notification>[];
     var collector = NavigationCollectorImpl();
     for (var contributor in contributors) {
       try {
-        contributor.computeNavigation(request, collector);
+        await contributor.computeNavigation(request, collector);
       } catch (exception, stackTrace) {
         notifications.add(PluginErrorParams(
             false, exception.toString(), stackTrace.toString())
