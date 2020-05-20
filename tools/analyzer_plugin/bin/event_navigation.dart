@@ -46,9 +46,6 @@ class EventNavigationContributor implements MyNavigationContributor {
   Future computeNavigation(NavigationRequest request, NavigationCollector collector) async {
     if (request is DartNavigationRequest) {
 
-      var visitor2 = NavigationVisitor(collector, request.path, logger, "NO");
-      request.result.unit.accept(visitor2);
-      return;
       logger.log('Starting!');
       logger.log('Again!!');
       logger.log('Seaching for ${request.offset} ${request.length}');
@@ -104,7 +101,7 @@ class EventNavigationContributor implements MyNavigationContributor {
           // BUT NOT THIS!?!??!
           //collector.addRegion(it.offset, it.length, plugin.ElementKind.FUNCTION, location);
           // WHY DOES THIS WORK
-          var visitor2 = NavigationVisitor(collector, request.path, logger, eventName);
+          var visitor2 = ItNavigationVisitor(collector, request.path, logger, eventName, location);
           request.result.unit.accept(visitor2);
         }
       }
@@ -113,15 +110,16 @@ class EventNavigationContributor implements MyNavigationContributor {
   }
 }
 
-class NavigationVisitor extends RecursiveAstVisitor {
+class ItNavigationVisitor extends RecursiveAstVisitor {
   final NavigationCollector collector;
 
   final String path;
   final Logger logger;
   final String name;
-  NavigationVisitor(this.collector, this.path, this.logger, this.name);
+  final plugin.Location location;
+  ItNavigationVisitor(this.collector, this.path, this.logger, this.name, this.location);
 
-  final String haha = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\test\\test_bloc2.dart";
+  final String haha = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\test\\test_bloc.dart";
 
   final String t = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\wtf\\";
 
@@ -129,17 +127,21 @@ class NavigationVisitor extends RecursiveAstVisitor {
   void visitSimpleIdentifier(SimpleIdentifier node) {
     logger.log("Visiting ${node.name}");
     //if(node.name == name) {
-    if(true){
+    // TODO doing this doesnt make any sense, but I've literally been debuggin this for countless hours and I wasn't able
+    // to find another fix
+    if(node.name == name){
       var path = "$t${node.name}.dart";
+      logger.log('This will lead to $path');
       //var file = io.File(path);
       //file.writeAsStringSync("//contents");
 
       //collector.addRegion(node.offset, node.length, plugin.ElementKind.FUNCTION, location);
       collector.addRegion(
-          node.offset, node.length, plugin.ElementKind.FUNCTION, plugin.Location(haha, node.offset, node.length, 0, 0));
+          node.offset, node.length, plugin.ElementKind.FUNCTION, location);
       //logger.log("${json.encode(plugin.Location(path, 0, 0,0,0).toJson())}");
-      logger.log("Offset: ${node.offset} + Length: ${node.length}");
-      logger.log("DOING THE THING");
+      //logger.log("Offset: ${node.offset} + Length: ${node.length}");
+      //logger.log("DOING THE THING");
+
     }
     //collector.addRegion(0, 5, ElementKind.CLASS, Location());
     // ...

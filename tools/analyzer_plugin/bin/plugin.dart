@@ -119,4 +119,33 @@ class MyPlugin extends ServerPlugin with MyAssistsMixin, MyDartAssistsMixin, MyN
   }
 }
 
+class LOLMyNavigationContributor implements NavigationContributor {
+  @override
+  void computeNavigation(
+      NavigationRequest request, NavigationCollector collector) {
+    if (request is DartNavigationRequest) {
+      var visitor = NavigationVisitor(collector, request.path);
+      request.result.unit.accept(visitor);
+    }
+  }
+}
 
+class NavigationVisitor extends RecursiveAstVisitor {
+  final NavigationCollector collector;
+
+  final String path;
+  NavigationVisitor(this.collector, this.path);
+
+  @override
+  void visitAssertInitializer(AssertInitializer node) {
+    node.visitChildren(this);
+    collector.addRegion(node.offset, node.length, plugin.ElementKind.FUNCTION, plugin.Location(path, 0,0,0,0));
+  }
+
+  @override
+  void visitSimpleIdentifier(SimpleIdentifier node) {
+    collector.addRegion(node.offset, node.length, plugin.ElementKind.FUNCTION, plugin.Location(path, 0,0,0,0));
+    //collector.addRegion(0, 5, ElementKind.CLASS, Location());
+    // ...
+  }
+}
