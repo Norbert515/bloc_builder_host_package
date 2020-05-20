@@ -7,9 +7,6 @@ environment:
   sdk: '>=2.7.2 <3.0.0'
 
 dependencies:
-  bloc_builder_plugin:
-    #path: ..\..\..\bloc_builder_plugin
-    path: "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_plugin"
   analyzer_plugin: ^0.2.1
 
 
