@@ -119,9 +119,7 @@ class ItNavigationVisitor extends RecursiveAstVisitor {
   final plugin.Location location;
   ItNavigationVisitor(this.collector, this.path, this.logger, this.name, this.location);
 
-  final String haha = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\test\\test_bloc.dart";
-
-  final String t = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\wtf\\";
+  //final String haha = "C:\\Users\\Norbert\\workspace\\analysis_plugin\\bloc_builder_test_project\\lib\\test\\test_bloc.dart";
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
@@ -130,8 +128,6 @@ class ItNavigationVisitor extends RecursiveAstVisitor {
     // TODO doing this doesnt make any sense, but I've literally been debuggin this for countless hours and I wasn't able
     // to find another fix
     if(node.name == name){
-      var path = "$t${node.name}.dart";
-      logger.log('This will lead to $path');
       //var file = io.File(path);
       //file.writeAsStringSync("//contents");
 
